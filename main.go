@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -148,4 +149,41 @@ func hello(w http.ResponseWriter, r *http.Request) {
 
 	// Update execCount metric
 	execCount.Add(ctx, 1)
+}
+
+type JokeResponse struct {
+	ID     string `json:"id"`
+	Joke   string `json:"joke"`
+	Status int    `json:"status"`
+}
+
+// Handler for /dadjoke endpoint
+func dadjoke(w http.ResponseWriter, r *http.Request) {
+
+	// ctx := r.Context()
+
+	log.Print("Calling external API for dad jokes")
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://icanhazdadjoke.com", nil)
+	if err != nil {
+		log.Print(err.Error())
+	}
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	var responseObject JokeResponse
+	json.Unmarshal(bodyBytes, &responseObject)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseObject.Joke)
 }
