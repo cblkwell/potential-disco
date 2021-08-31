@@ -133,6 +133,7 @@ func main() {
 
 	// When client makes a GET request to /hello, handler will be called
 	r.HandleFunc("/hello", hello).Methods(http.MethodGet)
+	r.HandleFunc("/dadjoke", dadjoke).Methods(http.MethodGet)
 
 	// Start the server and listen on localhost:8080
 	log.Fatal(http.ListenAndServe(":8080", r))
