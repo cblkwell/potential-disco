@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -115,6 +116,9 @@ func main() {
 	// Create metric instance to support custom metric
 	meter = global.Meter("io.opentelemetry.metrics.mtbapp")
 
+	// Add tracer instance to support custom traces
+	tracer = otel.Tracer("io.opentelemetry.traces.mtbapp")
+
 	// Creating custom metric to track number of requests to hello endpoint
 	execCount = metric.Must(meter).
 		NewInt64Counter(
@@ -132,6 +136,7 @@ func main() {
 
 	// When client makes a GET request to /hello, handler will be called
 	r.HandleFunc("/hello", hello).Methods(http.MethodGet)
+	r.HandleFunc("/dadjoke", dadjoke).Methods(http.MethodGet)
 
 	// Start the server and listen on localhost:8080
 	log.Fatal(http.ListenAndServe(":8080", r))
@@ -145,6 +150,50 @@ func hello(w http.ResponseWriter, r *http.Request) {
 	// Set the header content-type and return the hello world response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode("hello world")
+
+	// Update execCount metric
+	execCount.Add(ctx, 1)
+}
+
+type JokeResponse struct {
+	ID     string `json:"id"`
+	Joke   string `json:"joke"`
+	Status int    `json:"status"`
+}
+
+// Handler for /dadjoke endpoint
+func dadjoke(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	log.Print("Calling external API for dad jokes")
+
+	// Create a new span to capture the work here
+	ctx, jokeRetrieval := tracer.Start(ctx, "jokeRetrieval")
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://icanhazdadjoke.com", nil)
+	if err != nil {
+		log.Print(err.Error())
+	}
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Print(err.Error())
+	}
+	jokeRetrieval.End()
+
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	var responseObject JokeResponse
+	json.Unmarshal(bodyBytes, &responseObject)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseObject.Joke)
 
 	// Update execCount metric
 	execCount.Add(ctx, 1)
