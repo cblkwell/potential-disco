@@ -165,7 +165,9 @@ func dadjoke(w http.ResponseWriter, r *http.Request) {
 
 	log.Print("Calling external API for dad jokes")
 
+	// Create a new span to capture the work here
 	ctx, jokeRetrieval := tracer.Start(ctx, "jokeRetrieval")
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", "https://icanhazdadjoke.com", nil)
 	if err != nil {
@@ -189,4 +191,7 @@ func dadjoke(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(bodyBytes, &responseObject)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseObject.Joke)
+
+	// Update execCount metric
+	execCount.Add(ctx, 1)
 }
