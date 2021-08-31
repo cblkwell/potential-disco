@@ -116,6 +116,9 @@ func main() {
 	// Create metric instance to support custom metric
 	meter = global.Meter("io.opentelemetry.metrics.mtbapp")
 
+	// Add tracer instance to support custom traces
+	tracer = otel.Tracer("io.opentelemetry.traces.mtbapp")
+
 	// Creating custom metric to track number of requests to hello endpoint
 	execCount = metric.Must(meter).
 		NewInt64Counter(
