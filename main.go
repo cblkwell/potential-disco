@@ -161,10 +161,11 @@ type JokeResponse struct {
 // Handler for /dadjoke endpoint
 func dadjoke(w http.ResponseWriter, r *http.Request) {
 
-	// ctx := r.Context()
+	ctx := r.Context()
 
 	log.Print("Calling external API for dad jokes")
 
+	ctx, jokeRetrieval := tracer.Start(ctx, "jokeRetrieval")
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", "https://icanhazdadjoke.com", nil)
 	if err != nil {
@@ -176,6 +177,7 @@ func dadjoke(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err.Error())
 	}
+	jokeRetrieval.End()
 
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
