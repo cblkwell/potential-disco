@@ -1,0 +1,62 @@
+{
+  "containerDefinitions": [
+    {
+      "command": [
+        "--config=/etc/ecs/ecs-default-config.yaml"
+      ],
+      "essential": true,
+      "image": "amazon/aws-otel-collector",
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "True",
+          "awslogs-group": "/ecs/otel-test-app",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "otel-collector"
+        }
+      },
+      "name": "aws-otel-collector"
+    },
+    {
+      "dependsOn": [
+        {
+          "condition": "START",
+          "containerName": "aws-otel-collector"
+        }
+      ],
+      "environment": [
+        {
+          "name": "EXPORTER_ENDPOINT",
+          "value": "localhost:4317"
+        }
+      ],
+      "essential": false,
+      "image": "YOUR_AWS_ACCOUNT_NUM.dkr.ecr.us-west-2.amazonaws.com/otel-test-app:latest",
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "True",
+          "awslogs-group": "/ecs/otel-test-app",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "otel-test-app"
+        }
+      },
+      "name": "otel-test-app",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080
+        }
+      ]
+    }
+  ],
+  "cpu": "256",
+  "executionRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_NUM:role/ecs-task-execution-role-otel-test-app",
+  "family": "otel-test-app",
+  "memory": "512",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "taskRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_NUM:role/ecs-task-role-otel-test-app"
+}
